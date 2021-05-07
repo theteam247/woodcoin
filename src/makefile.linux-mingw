@@ -2,13 +2,18 @@
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-DEPSDIR:=/usr/i686-w64-mingw32
+DEPSDIR:=/usr/lib/mxe/usr/i686-w64-mingw32.static
 
-CC := i686-w64-mingw32-gcc
-CXX := i686-w64-mingw32-g++
+CC := /usr/lib/mxe/usr/bin/i686-w64-mingw32.static-gcc
+CXX := /usr/lib/mxe/usr/bin/i686-w64-mingw32.static-g++
 
 USE_UPNP:=0
 USE_IPV6:=1
+
+#OPENSSL_LIB_PATH:=/usr/lib/mxe/usr/i686-w64-mingw32.static/lib
+# OPENSSL_INCLUDE_PATH:=/usr/lib/mxe/usr/i686-w64-mingw32.static/include
+
+
 
 INCLUDEPATHS= \
  -I"$(CURDIR)" \
@@ -24,11 +29,13 @@ LIBS= \
  -l boost_system-mt-s \
  -l boost_filesystem-mt-s \
  -l boost_program_options-mt-s \
- -l boost_thread_win32-mt-s \
+ -l boost_thread-mt-s \
  -l boost_chrono-mt-s \
  -l db_cxx \
  -l ssl \
- -l crypto
+ -l crypto \
+ -l crypt32
+
 
 DEFS=-D_MT -DWIN32 -D_WINDOWS -DBOOST_THREAD_USE_LIB -DBOOST_SPIRIT_THREADSAFE
 DEBUGFLAGS=-g
@@ -83,6 +90,7 @@ OBJS= \
     obj/wallet.o \
     obj/walletdb.o \
     obj/noui.o \
+    obj/skein.o \
     obj/hash.o \
     obj/bloom.o \
     obj/leveldb.o \
@@ -94,7 +102,7 @@ OBJS_SSE2= obj/scrypt-sse2.o
 OBJS += $(OBJS_SSE2)
 endif
 
-all: litecoind.exe
+all: woodcoind.exe
 
 DEFS += -I"$(CURDIR)/leveldb/include"
 DEFS += -I"$(CURDIR)/leveldb/helpers"
@@ -111,8 +119,9 @@ obj/%-sse2.o: %-sse2.cpp
 
 obj/%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(xCXXFLAGS) -o $@ $<
-
-litecoind.exe: $(OBJS:obj/%=obj/%)
+obj/%.o: %.c $(HEADERS)
+	$(CXX) -c $(xCXXFLAGS) -fpermissive -o $@ $<
+woodcoind.exe: $(OBJS:obj/%=obj/%)
 	$(CXX) $(xCXXFLAGS) $(xLDFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
@@ -120,15 +129,15 @@ TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 obj-test/%.o: test/%.cpp $(HEADERS)
 	$(CXX) -c $(TESTDEFS) $(xCXXFLAGS) -o $@ $<
 
-test_litecoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
+test_woodcoin.exe: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
 	$(CXX) $(xCXXFLAGS) $(xLDFLAGS) -o $@ $(LIBPATHS) $^ -lboost_unit_test_framework-mt-s $(LIBS)
 
 
 clean:
 	-rm -f obj/*.o
-	-rm -f litecoind.exe
+	-rm -f woodcoind.exe
 	-rm -f obj-test/*.o
-	-rm -f test_litecoin.exe
+	-rm -f test_woodcoin.exe
 	-rm -f obj/build.h
 	cd leveldb && TARGET_OS=OS_WINDOWS_CROSSCOMPILE $(MAKE) clean && cd ..
 
